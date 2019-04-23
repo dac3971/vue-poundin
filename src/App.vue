@@ -43,7 +43,7 @@
               <v-layout row>
                 <v-flex xs5>
                   <v-img
-                    :src="profInfo.img"
+                    :src="profInfo.imgURL"
                     height="200px"
                     contain
                   ></v-img>
@@ -82,7 +82,7 @@
           <v-list-tile-avatar class="font-weight-bold">Time</v-list-tile-avatar>
         </v-list-tile>
         <v-list-tile v-for="item in items" :key="item.itemID"
-        @click="showDialog(item.isbn,item.itemID,item.price,item.title)">
+        @click="showDialog('9780805863635',item.itemID,item.price,item.title)">
           <v-list-tile-avatar>{{item.price}}</v-list-tile-avatar>
           <v-list-tile-title>{{item.title}}</v-list-tile-title>
           <div>{{calcDiff(item.timestamp)}}</div>
@@ -99,7 +99,7 @@ import axios from 'axios'
 import url from 'url'
 import moment from 'moment'
 import HelloWorld from './components/HelloWorld'
-import { setInterval, clearInterval } from 'timers';
+import { setInterval, clearInterval } from 'timers'
 
 export default {
   name: 'App',
@@ -119,7 +119,7 @@ export default {
         isbn: '7899999',
         title: "Fundamentals of Engineering Thermodynamics Moran, Michael J. Good Book 0 Har",
         avgPrice: 129,
-        img: "https://i.ebayimg.com/thumbs/images/g/N2IAAOSw4CFYokvE/s-l225.jpg"
+        imgURL: "https://i.ebayimg.com/thumbs/images/g/N2IAAOSw4CFYokvE/s-l225.jpg"
       },
       now: moment(),
       interval: null,
@@ -142,13 +142,13 @@ export default {
     clearInterval(this.interval)
   },
   methods: {
-    showDialog: function(isbn,id,price,title){
-      this.dialog = this.dialog === false
+    showDialog: async function(isbn,id,price,title){
+      this.dialog = true
       this.loading = true
       this.title = title
       this.price = price
-      // this.profInfo = {} this is where you await the axios profile call
-      axios.get('http://dummy.restapiexample.com/employees').then(d=> this.loading = false)
+      this.profInfo = (await axios.get(`http://localhost:5000/profile/${isbn}/`)).data
+      this.loading = false
       this.diff = this.profInfo.avgPrice-price
     },
     calcDiff: function(timestamp){
@@ -157,9 +157,9 @@ export default {
       return parseInt(dur.asHours())+':'+dur.get('minutes')+':'+dur.get('seconds')
     },
     getData: function (){
-      axios.get('http://localhost:5000')
+      axios.get('http://localhost:5000/run/')
       .then(response => {
-        this.profInfo = JSON.stringify(response.data, null, 3)
+        console.log(response)
       })
     }
   }
