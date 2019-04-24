@@ -9,11 +9,10 @@
         <div style="border: 1px solid black; padding: 6px">{{now.format('LTS')}}</div>
       <v-spacer />
       <v-btn
-        flat
+        flat small outline
         @click="getData"
         target="_blank"
-      >
-        <span class="mr-2">get data</span>
+      >get data
       </v-btn>
     </v-toolbar>
 
@@ -67,6 +66,8 @@
                     <v-list-tile-avatar :class="color">{{ diff }}</v-list-tile-avatar>
                     </v-list-tile>
                       <!-- <v-icon>thumb_up</v-icon> -->
+                    <v-btn flat small outline :href="`https://www.ebay.com/itm/${id}`"
+                    target="_blank">See on eBay >></v-btn>
                   </v-list>
                 </v-flex>
               </v-layout>
@@ -77,15 +78,20 @@
   </div>
       <v-list>
         <v-list-tile>
+          <v-list-tile-avatar class="font-weight-bold">Spread</v-list-tile-avatar>
           <v-list-tile-avatar class="font-weight-bold">Price</v-list-tile-avatar>
           <v-list-tile-title class="font-weight-bold">Title</v-list-tile-title>
           <v-list-tile-avatar class="font-weight-bold">Time</v-list-tile-avatar>
         </v-list-tile>
-        <v-list-tile v-for="item in items" :key="item.itemID"
-        @click="showDialog('9780805863635',item.itemID,item.price,item.title)">
-          <v-list-tile-avatar>{{item.price}}</v-list-tile-avatar>
-          <v-list-tile-title>{{item.title}}</v-list-tile-title>
-          <div>{{calcDiff(item.timestamp)}}</div>
+        <v-list-tile v-for="item in items" :key="item.listingID"
+        @click="showDialog(item.isbn,item.listingID,item.price,item.title)">
+          <v-list-tile-avatar :class="getColor(profInfo.avgPrice-item.price)">
+            {{Math.round(item.spread)}}</v-list-tile-avatar>
+          <v-list-tile-avatar>{{Math.round(item.price)}}</v-list-tile-avatar>
+          <v-list-tile-title class="font-italic">{{item.title}}</v-list-tile-title>
+          <v-list-tile-avatar v-if="item.endTimestamp===0">
+          <div>{{calcDiff(item.endTimestamp)}}</div>
+          </v-list-tile-avatar>
         </v-list-tile>
       </v-list>
 </template>
@@ -98,42 +104,29 @@
 import axios from 'axios'
 import url from 'url'
 import moment from 'moment'
-import HelloWorld from './components/HelloWorld'
 import { setInterval, clearInterval } from 'timers'
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
-  },
   data () {
     return {
-      items: [{
-        itemID: '90',
-        isbn: '7899999',
-        price: 98,
-        title: "Fundamentals of Engineering Thermodynamics Moran, Michael J. Good Book 0 Har",
-        timestamp: 1555528499000
-      }],
-      profInfo: {
-        isbn: '7899999',
-        title: "Fundamentals of Engineering Thermodynamics Moran, Michael J. Good Book 0 Har",
-        avgPrice: 129,
-        imgURL: "https://i.ebayimg.com/thumbs/images/g/N2IAAOSw4CFYokvE/s-l225.jpg"
-      },
+      items: [],
+      profInfo: {},
       now: moment(),
       interval: null,
+      id: '',
       title: '',
       price: 0,
+      diff: 0,
       loading: false,
-      dialog: false,
-      diff: 0
+      dialog: false
     }
   },
   computed: {
     color(){ return (this.profInfo.avgPrice - this.price) >0 ? "green--text": "red--text" }
   },
   mounted () {
+    this.getItems()
     this.interval = setInterval(()=>{
       this.now = moment()
     }, 1000)
@@ -147,6 +140,7 @@ export default {
       this.loading = true
       this.title = title
       this.price = price
+      this.id = id
       this.profInfo = (await axios.get(`http://localhost:5000/profile/${isbn}/`)).data
       this.loading = false
       this.diff = this.profInfo.avgPrice-price
@@ -154,7 +148,15 @@ export default {
     calcDiff: function(timestamp){
       const end = moment(timestamp)
       const dur = moment.duration(end.diff(this.now))
+      if(timestamp === 0) return 'BIN'
       return parseInt(dur.asHours())+':'+dur.get('minutes')+':'+dur.get('seconds')
+    },
+    getItems: function (){
+      axios.get('http://localhost:5000/items/25')
+      .then(response=>this.items=response.data)
+    },
+    getColor: function (n){
+      return n > 0 ? "green--text": "red--text"
     },
     getData: function (){
       axios.get('http://localhost:5000/run/')
